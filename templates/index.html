@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+  <section class="panel">
+    <h2>New note</h2>
+    <form method="post" action="{{ url_for('add') }}">
+      <input type="text" name="title" placeholder="Title" maxlength="100" required>
+      <textarea name="content" placeholder="Write something..." rows="3" maxlength="2000"></textarea>
+      <button type="submit">Add note</button>
+    </form>
+  </section>
+
+  <form class="search" method="get" action="{{ url_for('index') }}">
+    <input type="search" name="q" value="{{ query }}" placeholder="Search notes...">
+    <button type="submit">Search</button>
+    {% if query %}<a href="{{ url_for('index') }}">Clear</a>{% endif %}
+  </form>
+
+  {% if notes %}
+    <ul class="notes">
+      {% for note in notes %}
+        <li class="note {% if note['pinned'] %}pinned{% endif %}">
+          <h3>{% if note['pinned'] %}&#128204; {% endif %}{{ note['title'] }}</h3>
+          <p>{{ note['content'] }}</p>
+          <small>{{ note['created_at'] }}</small>
+          <div class="actions">
+            <form method="post" action="{{ url_for('pin', note_id=note['id']) }}">
+              <button type="submit">{{ 'Unpin' if note['pinned'] else 'Pin' }}</button>
+            </form>
+            <a class="button" href="{{ url_for('edit', note_id=note['id']) }}">Edit</a>
+            <form method="post" action="{{ url_for('delete', note_id=note['id']) }}">
+              <button type="submit" class="danger">Delete</button>
+            </form>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="empty">{% if query %}No notes match "{{ query }}".{% else %}No notes yet. Add your first one above.{% endif %}</p>
+  {% endif %}
+{% endblock %}
