@@ -4,6 +4,7 @@
   <section class="panel">
     <h2>Edit note</h2>
     <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="title" value="{{ title }}" maxlength="100" required>
       <textarea name="content" rows="5" maxlength="2000">{{ content }}</textarea>
       <div class="actions">

@@ -3,6 +3,7 @@
   <section class="panel">
     <h2>New note</h2>
     <form method="post" action="{{ url_for('add') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <input type="text" name="title" placeholder="Title" maxlength="100" required>
       <textarea name="content" placeholder="Write something..." rows="3" maxlength="2000"></textarea>
       <button type="submit">Add note</button>
@@ -24,10 +25,12 @@
           <small>{{ note['created_at'] }}</small>
           <div class="actions">
             <form method="post" action="{{ url_for('pin', note_id=note['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit">{{ 'Unpin' if note['pinned'] else 'Pin' }}</button>
             </form>
             <a class="button" href="{{ url_for('edit', note_id=note['id']) }}">Edit</a>
             <form method="post" action="{{ url_for('delete', note_id=note['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <button type="submit" class="danger">Delete</button>
             </form>
           </div>

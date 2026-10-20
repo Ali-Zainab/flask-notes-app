@@ -1,9 +1,11 @@
 """Flask Notes App: create, search, edit, pin and delete notes (SQLite storage)."""
 
 import os
+import secrets
 import sqlite3
 
 from flask import Flask, abort, flash, g, redirect, render_template, request, url_for
+from flask_wtf.csrf import CSRFProtect
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS notes (
@@ -33,11 +35,22 @@ def validate_note(title, content):
 def create_app(test_config=None):
     app = Flask(__name__)
     app.config.update(
-        SECRET_KEY=os.environ.get("SECRET_KEY", "dev-only-change-me"),
-        DATABASE=os.path.join(app.root_path, "notes.db"),
+        APP_ENV=os.environ.get("APP_ENV", "production").strip().lower(),
+        SECRET_KEY=os.environ.get("SECRET_KEY"),
+        DATABASE=os.environ.get("DATABASE", os.path.join(app.root_path, "notes.db")),
     )
     if test_config:
         app.config.update(test_config)
+    app.config["APP_ENV"] = str(app.config["APP_ENV"]).strip().lower()
+    if not app.config["SECRET_KEY"]:
+        if app.config["TESTING"] or app.config["APP_ENV"] == "development":
+            app.config["SECRET_KEY"] = secrets.token_hex(32)
+        else:
+            raise RuntimeError(
+                "SECRET_KEY must be set unless APP_ENV is development or testing."
+            )
+
+    CSRFProtect(app)
 
     # ---- database helpers ----
     def get_db():
@@ -130,4 +143,5 @@ def create_app(test_config=None):
 
 
 if __name__ == "__main__":
-    create_app().run(debug=True)
+    environment = os.environ.get("APP_ENV", "development").strip().lower()
+    create_app({"APP_ENV": environment}).run(debug=environment == "development")

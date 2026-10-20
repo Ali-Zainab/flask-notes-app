@@ -5,7 +5,11 @@ from app import create_app
 
 @pytest.fixture
 def client(tmp_path):
-    app = create_app({"TESTING": True, "DATABASE": str(tmp_path / "test.db")})
+    app = create_app({
+        "TESTING": True,
+        "WTF_CSRF_ENABLED": False,
+        "DATABASE": str(tmp_path / "test.db"),
+    })
     return app.test_client()
 
 
@@ -86,3 +90,67 @@ def test_html_in_notes_is_escaped(client):
     html = client.get("/").data.decode()
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;" in html
+
+
+def test_environment_config_is_used(monkeypatch, tmp_path):
+    database = tmp_path / "environment.db"
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "configured-secret")
+    monkeypatch.setenv("DATABASE", str(database))
+
+    app = create_app()
+
+    assert app.config["APP_ENV"] == "production"
+    assert app.config["SECRET_KEY"] == "configured-secret"
+    assert app.config["DATABASE"] == str(database)
+    assert database.exists()
+
+
+def test_test_config_overrides_environment(monkeypatch, tmp_path):
+    monkeypatch.setenv("SECRET_KEY", "environment-secret")
+    monkeypatch.setenv("DATABASE", str(tmp_path / "environment.db"))
+    database = tmp_path / "test-config.db"
+
+    app = create_app({
+        "TESTING": True,
+        "SECRET_KEY": "test-config-secret",
+        "DATABASE": str(database),
+    })
+
+    assert app.config["SECRET_KEY"] == "test-config-secret"
+    assert app.config["DATABASE"] == str(database)
+
+
+def test_production_requires_secret_key(monkeypatch):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+
+    with pytest.raises(RuntimeError, match="SECRET_KEY must be set"):
+        create_app()
+
+
+def test_development_secret_is_random_when_not_configured(monkeypatch, tmp_path):
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("SECRET_KEY", raising=False)
+    monkeypatch.setenv("DATABASE", str(tmp_path / "development.db"))
+
+    first = create_app()
+    second = create_app()
+
+    assert first.config["SECRET_KEY"]
+    assert first.config["SECRET_KEY"] != "dev-only-change-me"
+    assert first.config["SECRET_KEY"] != second.config["SECRET_KEY"]
+
+
+def test_post_requires_csrf_token(monkeypatch, tmp_path):
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("SECRET_KEY", "csrf-test-secret")
+    monkeypatch.setenv("DATABASE", str(tmp_path / "csrf.db"))
+    app = create_app()
+
+    response = app.test_client().post(
+        "/add", data={"title": "Shopping", "content": "Milk"}
+    )
+
+    assert response.status_code == 400
+    assert b"CSRF" in response.data
