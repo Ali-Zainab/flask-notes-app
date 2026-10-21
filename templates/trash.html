@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_note_card.html" import note_card %}
+{% block title %}Trash{% endblock %}
+{% block content %}
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Workspace</p>
+      <h1>Trash</h1>
+      <p class="sub">{{ notes|length }} {{ 'note' if notes|length == 1 else 'notes' }}</p>
+    </div>
+    {% if notes %}
+    <form method="post" action="{{ url_for('empty_trash') }}" data-confirm
+          data-confirm-heading="Empty Trash?"
+          data-confirm-message="All {{ notes|length }} {{ 'note' if notes|length == 1 else 'notes' }} in Trash will be permanently deleted. This can’t be undone."
+          data-confirm-label="Empty Trash">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger-ghost">{{ icon("trash") }}<span>Empty Trash</span></button>
+    </form>
+    {% endif %}
+  </header>
+
+  <p class="notice">{{ icon("alert", 18) }}<span>Notes stay in Trash until you restore them or delete them permanently. Nothing here is deleted automatically.</span></p>
+
+  {% if notes %}
+    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "trashed", "trash_view") }}{% endfor %}</ul>
+  {% else %}
+    <div class="empty">
+      <span class="empty-icon">{{ icon("trash", 28) }}</span>
+      <h2>Trash is empty</h2>
+      <p>Notes you move to Trash will wait here so you can restore them.</p>
+      <a class="btn btn-secondary" href="{{ url_for('index') }}">Back to all notes</a>
+    </div>
+  {% endif %}
+{% endblock %}

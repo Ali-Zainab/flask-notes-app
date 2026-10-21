@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_note_card.html" import note_card %}
+{% block title %}Archive{% endblock %}
+{% block content %}
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Workspace</p>
+      <h1>Archive</h1>
+      <p class="sub">{{ notes|length }} {{ 'note' if notes|length == 1 else 'notes' }} · hidden from All notes, kept safe</p>
+    </div>
+  </header>
+
+  {% if notes %}
+    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "archived", "archive_view") }}{% endfor %}</ul>
+  {% else %}
+    <div class="empty">
+      <span class="empty-icon">{{ icon("archive", 28) }}</span>
+      <h2>Nothing archived</h2>
+      <p>Archive a note to tidy it out of All notes without deleting it. You can unarchive it any time.</p>
+      <a class="btn btn-secondary" href="{{ url_for('index') }}">Back to all notes</a>
+    </div>
+  {% endif %}
+{% endblock %}

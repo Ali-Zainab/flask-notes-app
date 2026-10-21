@@ -1,0 +1,40 @@
+{# Inline SVG icon set (presentational only). Usage: {% from "_icons.html" import icon %}{{ icon("pin") }} #}
+{% macro icon(name, size=18) -%}
+<svg class="icon" width="{{ size }}" height="{{ size }}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">
+{%- if name == "logo" -%}
+<path d="M5 4h10l4 4v12H5z"/><path d="M15 4v4h4"/><path d="M8.5 13h7M8.5 16.5h4.5"/>
+{%- elif name == "notes" -%}
+<rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8 9h8M8 13h8M8 17h4"/>
+{%- elif name == "plus" -%}
+<path d="M12 5v14M5 12h14"/>
+{%- elif name == "search" -%}
+<circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.2-4.2"/>
+{%- elif name == "pin" -%}
+<path d="M9 4h6l-1 6 3 3v1.5H7V13l3-3z"/><path d="M12 14.5V21"/>
+{%- elif name == "pin-filled" -%}
+<path d="M9 4h6l-1 6 3 3v1.5H7V13l3-3z" fill="currentColor"/><path d="M12 14.5V21"/>
+{%- elif name == "edit" -%}
+<path d="M4 20h4l10.5-10.5a2.1 2.1 0 0 0-3-3L5 17z"/><path d="m14 8 3 3"/>
+{%- elif name == "trash" -%}
+<path d="M4 7h16M10 11v6M14 11v6M6 7l1 12.5h10L18 7M9 7V4.5h6V7"/>
+{%- elif name == "folder" -%}
+<path d="M3.5 7.5A2 2 0 0 1 5.5 5.5H10l2 2.5h6.5a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2z"/>
+{%- elif name == "archive" -%}
+<rect x="3.5" y="4.5" width="17" height="4.5" rx="1.5"/><path d="M5.5 9v9.5a1.5 1.5 0 0 0 1.5 1.5h10a1.5 1.5 0 0 0 1.5-1.5V9M10 13h4"/>
+{%- elif name == "contrast" -%}
+<circle cx="12" cy="12" r="8"/><path d="M12 4v16" /><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor"/>
+{%- elif name == "arrow-left" -%}
+<path d="M19 12H5M11 6l-6 6 6 6"/>
+{%- elif name == "check" -%}
+<path d="m5 12.5 4.5 4.5L19 7.5"/>
+{%- elif name == "alert" -%}
+<circle cx="12" cy="12" r="8.5"/><path d="M12 8v5M12 16.2v.1"/>
+{%- elif name == "x" -%}
+<path d="m6 6 12 12M18 6 6 18"/>
+{%- elif name == "restore" -%}
+<path d="M4.5 12a7.5 7.5 0 1 0 2.4-5.5"/><path d="M4.5 4.5v4h4"/>
+{%- elif name == "sparkle" -%}
+<path d="M12 4v4M12 16v4M4 12h4M16 12h4M7 7l2 2M15 15l2 2M17 7l-2 2M9 15l-2 2"/>
+{%- endif -%}
+</svg>
+{%- endmacro %}

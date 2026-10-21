@@ -1,15 +1,38 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
 {% block title %}Edit note{% endblock %}
 {% block content %}
-  <section class="panel">
-    <h2>Edit note</h2>
+  <a class="back-link" href="{{ url_for('index') }}">{{ icon("arrow-left", 16) }}<span>All notes</span></a>
+
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Editing</p>
+      <h1>Edit note</h1>
+      <p class="sub">Created <time datetime="{{ note['created_at'] }}">{{ note['created_at'][:10] }}</time></p>
+    </div>
+  </header>
+
+  <section class="card editor" aria-labelledby="editor-title">
+    <h2 id="editor-title" class="sr-only">Note details</h2>
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="text" name="title" value="{{ title }}" maxlength="100" required>
-      <textarea name="content" rows="5" maxlength="2000">{{ content }}</textarea>
-      <div class="actions">
-        <button type="submit">Save changes</button>
-        <a class="button secondary" href="{{ url_for('index') }}">Cancel</a>
+      <label class="label" for="edit-title">Title</label>
+      <input class="field field-title" id="edit-title" type="text" name="title" value="{{ title }}" maxlength="100" required>
+      <label class="label" for="edit-content">Content</label>
+      <textarea class="field field-body" id="edit-content" name="content" rows="12" maxlength="2000">{{ content }}</textarea>
+      <label class="label" for="edit-category">Category</label>
+      {% set sel = selected_category|string if selected_category is not none else '' %}
+      <select class="field field-select" id="edit-category" name="category_id">
+        <option value="">No category</option>
+        {% for c in categories %}<option value="{{ c['id'] }}"{% if sel == c['id']|string %} selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
+      </select>
+      <div class="form-foot">
+        <span class="hint">Title up to 100 characters · note up to 2000</span>
+        <span class="counter" data-counter-for="edit-content" aria-hidden="true"></span>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">{{ icon("check") }}<span>Save changes</span></button>
+        <a class="btn btn-ghost" href="{{ url_for('index') }}">Cancel</a>
       </div>
     </form>
   </section>

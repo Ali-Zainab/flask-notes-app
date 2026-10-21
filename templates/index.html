@@ -1,43 +1,86 @@
 {% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_note_card.html" import note_card %}
+{% block title %}{% if query %}Search: {{ query }}{% elif active_category %}{{ active_category['name'] }}{% else %}All notes{% endif %}{% endblock %}
+
 {% block content %}
-  <section class="panel">
-    <h2>New note</h2>
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">{% if active_category %}Category{% else %}Workspace{% endif %}</p>
+      <h1>{% if query %}Search results{% elif active_category %}{{ active_category['name'] }}{% else %}All notes{% endif %}</h1>
+      <p class="sub">{{ notes|length }} {{ 'note' if notes|length == 1 else 'notes' }}{% if query %} matching “{{ query }}”{% endif %}{% if active_category and query %} in {{ active_category['name'] }}{% endif %}</p>
+    </div>
+    <a class="btn btn-primary" href="#new-note">{{ icon("plus") }}<span>New note</span></a>
+  </header>
+
+  <section class="card composer" id="new-note" aria-labelledby="composer-title">
+    <h2 id="composer-title" class="sr-only">New note</h2>
     <form method="post" action="{{ url_for('add') }}">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-      <input type="text" name="title" placeholder="Title" maxlength="100" required>
-      <textarea name="content" placeholder="Write something..." rows="3" maxlength="2000"></textarea>
-      <button type="submit">Add note</button>
+      <label class="sr-only" for="new-title">Title</label>
+      <input class="field field-title" id="new-title" type="text" name="title" placeholder="Give your note a title" maxlength="100" required autocomplete="off">
+      <label class="sr-only" for="new-content">Content</label>
+      <textarea class="field field-body" id="new-content" name="content" placeholder="Write something…" rows="3" maxlength="2000"></textarea>
+      <label class="sr-only" for="new-category">Category</label>
+      <select class="field field-select" id="new-category" name="category_id">
+        <option value="">No category</option>
+        {% for c in categories %}<option value="{{ c['id'] }}"{% if active_category and active_category['id'] == c['id'] %} selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
+      </select>
+      <div class="form-foot">
+        <span class="hint">Title up to 100 characters · note up to 2000</span>
+        <span class="counter" data-counter-for="new-content" aria-hidden="true"></span>
+        <button type="submit" class="btn btn-primary">{{ icon("plus") }}<span>Add note</span></button>
+      </div>
     </form>
   </section>
 
-  <form class="search" method="get" action="{{ url_for('index') }}">
-    <input type="search" name="q" value="{{ query }}" placeholder="Search notes...">
-    <button type="submit">Search</button>
-    {% if query %}<a href="{{ url_for('index') }}">Clear</a>{% endif %}
+  <form class="searchbar" role="search" method="get" action="{{ url_for('index') }}">
+    <label class="sr-only" for="q">Search notes</label>
+    <span class="searchbar-icon">{{ icon("search") }}</span>
+    <input id="q" type="search" name="q" value="{{ query }}" placeholder="Search notes…">
+    {% if active_category %}<input type="hidden" name="category" value="{{ active_category['id'] }}">{% endif %}
+    <button type="submit" class="btn btn-secondary">Search</button>
+    {% if query %}<a class="btn btn-ghost" href="{{ url_for('index', category=active_category['id'] if active_category else None) }}">Clear</a>{% endif %}
   </form>
 
+  <nav class="chips" aria-label="Filter by category">
+    <a class="chip{% if not active_category %} is-active{% endif %}" href="{{ url_for('index', q=query or None) }}"{% if not active_category %} aria-current="true"{% endif %}>All</a>
+    {% for c in categories %}
+      {% set on = active_category and active_category['id'] == c['id'] %}
+      <a class="chip{% if on %} is-active{% endif %}" href="{{ url_for('index', category=c['id'], q=query or None) }}"{% if on %} aria-current="true"{% endif %}>{{ icon("folder", 14) }}<span>{{ c['name'] }}</span></a>
+    {% endfor %}
+  </nav>
+
   {% if notes %}
-    <ul class="notes">
-      {% for note in notes %}
-        <li class="note {% if note['pinned'] %}pinned{% endif %}">
-          <h3>{% if note['pinned'] %}&#128204; {% endif %}{{ note['title'] }}</h3>
-          <p>{{ note['content'] }}</p>
-          <small>{{ note['created_at'] }}</small>
-          <div class="actions">
-            <form method="post" action="{{ url_for('pin', note_id=note['id']) }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit">{{ 'Unpin' if note['pinned'] else 'Pin' }}</button>
-            </form>
-            <a class="button" href="{{ url_for('edit', note_id=note['id']) }}">Edit</a>
-            <form method="post" action="{{ url_for('delete', note_id=note['id']) }}">
-              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <button type="submit" class="danger">Delete</button>
-            </form>
-          </div>
-        </li>
-      {% endfor %}
-    </ul>
+    {% set pinned_notes = notes|selectattr('pinned')|list %}
+    {% set other_notes = notes|rejectattr('pinned')|list %}
+    {% if pinned_notes %}
+      <section aria-labelledby="pinned-heading">
+        <h2 class="section-label" id="pinned-heading">{{ icon("pin-filled", 14) }}<span>Pinned</span></h2>
+        <ul class="notes-grid">{% for note in pinned_notes %}{{ note_card(note) }}{% endfor %}</ul>
+      </section>
+    {% endif %}
+    {% if other_notes %}
+      <section aria-labelledby="others-heading">
+        {% if pinned_notes %}<h2 class="section-label" id="others-heading"><span>Others</span></h2>{% endif %}
+        <ul class="notes-grid">{% for note in other_notes %}{{ note_card(note) }}{% endfor %}</ul>
+      </section>
+    {% endif %}
   {% else %}
-    <p class="empty">{% if query %}No notes match "{{ query }}".{% else %}No notes yet. Add your first one above.{% endif %}</p>
+    <div class="empty">
+      <span class="empty-icon">{{ icon("sparkle", 28) }}</span>
+      {% if query %}
+        <h2>No notes match “{{ query }}”</h2>
+        <p>Try a different word, or clear the search to see everything.</p>
+        <a class="btn btn-secondary" href="{{ url_for('index', category=active_category['id'] if active_category else None) }}">Clear search</a>
+      {% elif active_category %}
+        <h2>No notes in {{ active_category['name'] }} yet</h2>
+        <p>Pick this category when you add or edit a note and it will show up here.</p>
+        <a class="btn btn-secondary" href="{{ url_for('index') }}">Show all notes</a>
+      {% else %}
+        <h2>No notes yet</h2>
+        <p>Capture your first idea with the form above. Pinned notes will stay at the top.</p>
+      {% endif %}
+    </div>
   {% endif %}
 {% endblock %}

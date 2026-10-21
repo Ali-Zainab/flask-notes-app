@@ -3,12 +3,15 @@
 A small full-stack web app for keeping notes. The backend is Flask with a SQLite database, and the pages are rendered with Jinja templates.
 
 ## Features
-- Add, edit, delete and pin notes
-- Search notes by title or content
+- Add, edit and pin notes
+- Categories: Work, Business, Personal and Homework are built in; add your own and filter notes by category
+- Archive: tuck notes out of All notes without deleting them, and unarchive any time
+- Trash: deleting moves a note to Trash; restore it, or delete it permanently from there (nothing is deleted automatically)
+- Search notes by title or content (All notes only; archived and trashed notes are excluded)
 - Server-side validation (title required, length limits) with flash messages
 - Pinned notes always appear first
 - Safe output: note text is HTML-escaped (no script injection)
-- 11 automated tests with `pytest` and Flask's test client
+- Automated tests with `pytest` and Flask's test client (`test_app.py`)
 
 ## Setup
 ```
@@ -29,6 +32,12 @@ SQLite database file path; otherwise the app continues to use `notes.db` beside
 `.env` files automatically. Configure these variables in your shell or
 deployment environment.
 
+## Upgrading an existing database
+Starting the app upgrades `notes.db` in place, automatically and safely: it only *adds* the
+`categories` table and three nullable note columns (`category_id`, `archived_at`, `trashed_at`),
+then seeds the default categories. Existing notes keep their ids, text, pin state and dates, and
+repeated starts change nothing. Back up `notes.db` before upgrading if the notes matter to you.
+
 ## Run the tests
 ```
 pytest
@@ -40,10 +49,12 @@ flask-notes-app/
 ├── app.py              # routes, database and validation
 ├── templates/
 │   ├── base.html
-│   ├── index.html
-│   └── edit.html
+│   ├── _icons.html, _note_card.html
+│   ├── index.html, edit.html
+│   └── archive.html, trash.html, categories.html
 ├── static/
 │   └── style.css
+├── docs/               # UI design system, Agent 3 handoff
 ├── test_app.py         # automated tests
 ├── requirements.txt
 ├── .env.example

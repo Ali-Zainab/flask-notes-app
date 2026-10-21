@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Categories{% endblock %}
+{% block content %}
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Workspace</p>
+      <h1>Categories</h1>
+      <p class="sub">{{ categories|length }} {{ 'category' if categories|length == 1 else 'categories' }} · counts show notes in All notes</p>
+    </div>
+  </header>
+
+  <section class="card composer" aria-labelledby="category-form-title">
+    <h2 id="category-form-title" class="sr-only">New category</h2>
+    <form method="post" action="{{ url_for('add_category') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="label" for="category-name">New category</label>
+      <input class="field field-border" id="category-name" type="text" name="name" placeholder="e.g. Reading list" maxlength="{{ max_name }}" required autocomplete="off">
+      <div class="form-foot">
+        <span class="hint">Up to {{ max_name }} characters · names are not case-sensitive</span>
+        <button type="submit" class="btn btn-primary btn-end">{{ icon("plus") }}<span>Add category</span></button>
+      </div>
+    </form>
+  </section>
+
+  <ul class="notes-grid">
+    {% for c in categories %}
+      <li class="category-card">
+        <a href="{{ url_for('index', category=c['id']) }}">
+          <span class="category-name">{{ icon("folder", 18) }}<span>{{ c['name'] }}</span></span>
+          <span class="category-count">{{ c['note_count'] }}<span class="sr-only"> {{ 'note' if c['note_count'] == 1 else 'notes' }}</span></span>
+        </a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

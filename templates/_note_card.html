@@ -1,0 +1,55 @@
+{# Note card shared by the All notes, Archive and Trash pages.
+   mode: "active" | "archived" | "trashed". back: endpoint name POST actions return to. #}
+{% from "_icons.html" import icon %}
+{% macro note_card(note, mode="active", back="index") %}
+  {% set pinned = note['pinned'] %}
+  <li class="note-card{% if pinned %} is-pinned{% endif %}">
+    <article>
+      <h3 class="note-title">
+        {% if pinned %}<span class="pin-mark">{{ icon("pin-filled", 16) }}<span class="sr-only">Pinned: </span></span>{% endif %}{{ note['title'] }}
+      </h3>
+      {% if note['category_name'] %}<p class="note-meta"><span class="chip chip-static">{{ icon("folder", 14) }}<span class="sr-only">Category: </span>{{ note['category_name'] }}</span></p>{% endif %}
+      {% if note['content'] %}<p class="note-body">{{ note['content'] }}</p>{% endif %}
+      <footer class="note-foot">
+        {% if mode == "trashed" %}
+          <span class="note-date">In Trash since <time datetime="{{ note['trashed_at'] }}">{{ note['trashed_at'][:10] }}</time>{% if note['archived_at'] %} · was archived{% endif %}</span>
+        {% else %}
+          <time class="note-date" datetime="{{ note['created_at'] }}">{{ note['created_at'][:10] }}</time>
+        {% endif %}
+        <div class="note-actions">
+          {% if mode == "trashed" %}
+            <form method="post" action="{{ url_for('restore_note', note_id=note['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ back }}">
+              <button type="submit" class="btn btn-ghost btn-sm">{{ icon("restore", 16) }}<span>Restore</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
+            </form>
+            <form method="post" action="{{ url_for('purge_note', note_id=note['id']) }}" data-confirm data-confirm-title="{{ note['title'] }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ back }}">
+              <button type="submit" class="btn btn-danger-ghost btn-sm">{{ icon("trash", 16) }}<span>Delete permanently</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
+            </form>
+          {% else %}
+            {% if mode == "active" %}
+            <form method="post" action="{{ url_for('pin', note_id=note['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ back }}">
+              <button type="submit" class="btn btn-ghost btn-sm">{{ icon("pin-filled" if pinned else "pin", 16) }}<span>{{ 'Unpin' if pinned else 'Pin' }}</span></button>
+            </form>
+            {% endif %}
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('edit', note_id=note['id']) }}">{{ icon("edit", 16) }}<span>Edit</span><span class="sr-only"> note: {{ note['title'] }}</span></a>
+            <form method="post" action="{{ url_for('unarchive_note' if mode == 'archived' else 'archive_note', note_id=note['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ back }}">
+              <button type="submit" class="btn btn-ghost btn-sm">{{ icon("restore" if mode == "archived" else "archive", 16) }}<span>{{ 'Unarchive' if mode == 'archived' else 'Archive' }}</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
+            </form>
+            <form method="post" action="{{ url_for('delete', note_id=note['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <input type="hidden" name="next" value="{{ back }}">
+              <button type="submit" class="btn btn-danger-ghost btn-sm">{{ icon("trash", 16) }}<span>Trash</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
+            </form>
+          {% endif %}
+        </div>
+      </footer>
+    </article>
+  </li>
+{% endmacro %}

@@ -1,20 +1,95 @@
+{% from "_icons.html" import icon %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Notes{% endblock %}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="color-scheme" content="light dark">
+  <title>{% block title %}All notes{% endblock %} · NoteNest</title>
+  {# Apply a saved theme before first paint to avoid a flash. Optional: the CSS also follows the OS setting. #}
+  <script>(function(){try{var t=localStorage.getItem("notenest-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t);}}catch(e){}})();</script>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='app.js') }}" defer></script>
 </head>
 <body>
-  <header><a href="{{ url_for('index') }}">&#128221; Flask Notes</a></header>
-  <main>
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% for category, message in messages %}
-        <p class="flash {{ category }}">{{ message }}</p>
-      {% endfor %}
-    {% endwith %}
-    {% block content %}{% endblock %}
-  </main>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <div class="app">
+    <aside class="sidebar" aria-label="Primary">
+      <a class="brand" href="{{ url_for('index') }}">
+        <span class="brand-mark">{{ icon("logo", 20) }}</span>
+        <span class="brand-name">NoteNest</span>
+      </a>
+
+      <a class="btn btn-primary btn-block" href="{{ url_for('index') }}#new-note">{{ icon("plus") }}<span>New note</span></a>
+
+      <nav class="nav" aria-label="Sections">
+        <a class="nav-item{% if request.endpoint in ('index', 'edit') %} is-active{% endif %}" href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} aria-current="page"{% endif %}>
+          {{ icon("notes") }}<span>All notes</span>
+        </a>
+        <a class="nav-item{% if request.endpoint == 'categories_view' %} is-active{% endif %}" href="{{ url_for('categories_view') }}"{% if request.endpoint == 'categories_view' %} aria-current="page"{% endif %}>
+          {{ icon("folder") }}<span>Categories</span>
+        </a>
+        <a class="nav-item{% if request.endpoint == 'archive_view' %} is-active{% endif %}" href="{{ url_for('archive_view') }}"{% if request.endpoint == 'archive_view' %} aria-current="page"{% endif %}>
+          {{ icon("archive") }}<span>Archive</span>
+        </a>
+        <a class="nav-item{% if request.endpoint == 'trash_view' %} is-active{% endif %}" href="{{ url_for('trash_view') }}"{% if request.endpoint == 'trash_view' %} aria-current="page"{% endif %}>
+          {{ icon("trash") }}<span>Trash</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <button type="button" class="btn btn-ghost btn-block" data-theme-toggle hidden aria-pressed="false">
+          {{ icon("contrast") }}<span>Switch theme</span>
+        </button>
+      </div>
+    </aside>
+
+    <div class="content">
+      <header class="topbar">
+        <a class="brand" href="{{ url_for('index') }}">
+          <span class="brand-mark">{{ icon("logo", 20) }}</span>
+          <span class="brand-name">NoteNest</span>
+        </a>
+        <button type="button" class="icon-btn" data-theme-toggle hidden aria-pressed="false" aria-label="Switch theme">{{ icon("contrast", 20) }}</button>
+      </header>
+
+      <main id="main" class="main" tabindex="-1">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+          <div class="flashes">
+            {% for category, message in messages %}
+              <p class="flash {{ category }}" role="{{ 'alert' if category == 'error' else 'status' }}">
+                {{ icon("alert" if category == "error" else "check") }}<span>{{ message }}</span>
+              </p>
+            {% endfor %}
+          </div>
+          {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  {# Theme toggle lives in the top bar on small screens, which frees room for the section links. #}
+  <nav class="bottom-nav" aria-label="Primary mobile">
+    <a href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} aria-current="page"{% endif %}>{{ icon("notes", 22) }}<span>Notes</span></a>
+    <a href="{{ url_for('index') }}#new-note">{{ icon("plus", 22) }}<span>New</span></a>
+    <a href="{{ url_for('categories_view') }}"{% if request.endpoint == 'categories_view' %} aria-current="page"{% endif %}>{{ icon("folder", 22) }}<span>Categories</span></a>
+    <a href="{{ url_for('archive_view') }}"{% if request.endpoint == 'archive_view' %} aria-current="page"{% endif %}>{{ icon("archive", 22) }}<span>Archive</span></a>
+    <a href="{{ url_for('trash_view') }}"{% if request.endpoint == 'trash_view' %} aria-current="page"{% endif %}>{{ icon("trash", 22) }}<span>Trash</span></a>
+  </nav>
+
+  {# Optional enhancement: custom delete confirmation. Without JS the delete form submits normally. #}
+  <dialog id="confirm-dialog" class="dialog" aria-labelledby="confirm-title" aria-describedby="confirm-text">
+    <form method="dialog">
+      <h2 id="confirm-title">Delete this note?</h2>
+      <p id="confirm-text"></p>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" class="btn btn-ghost">Cancel</button>
+        <button type="submit" value="confirm" class="btn btn-danger">Delete note</button>
+      </div>
+    </form>
+  </dialog>
 </body>
 </html>
