@@ -7,6 +7,7 @@ A small full-stack web app for keeping notes. The backend is Flask with a SQLite
 - Categories: Work, Business, Personal and Homework are built in; add your own and filter notes by category
 - Archive: tuck notes out of All notes without deleting them, and unarchive any time
 - Trash: deleting moves a note to Trash; restore it, or delete it permanently from there (nothing is deleted automatically)
+- Media: attach images (PNG, JPEG, GIF, WebP) and audio (MP3, WAV, OGG, FLAC, M4A) to notes; browse everything in the Media Library (see `docs/MEDIA.md`)
 - Search notes by title or content (All notes only; archived and trashed notes are excluded)
 - Server-side validation (title required, length limits) with flash messages
 - Pinned notes always appear first
@@ -28,6 +29,8 @@ Set `APP_ENV=production` when deploying. `DATABASE` can be set to the desired
 SQLite database file path; otherwise the app continues to use `notes.db` beside
 `app.py`.
 
+Uploaded media is stored on disk in `UPLOAD_FOLDER` (default `uploads/` beside `app.py`, gitignored); back it up together with `notes.db`.
+
 `.env.example` documents the supported variables, but the app does not load
 `.env` files automatically. Configure these variables in your shell or
 deployment environment.
@@ -35,7 +38,7 @@ deployment environment.
 ## Upgrading an existing database
 Starting the app upgrades `notes.db` in place, automatically and safely: it only *adds* the
 `categories` table and three nullable note columns (`category_id`, `archived_at`, `trashed_at`),
-then seeds the default categories. Existing notes keep their ids, text, pin state and dates, and
+creates the `media` table, then seeds the default categories. Existing notes keep their ids, text, pin state and dates, and
 repeated starts change nothing. Back up `notes.db` before upgrading if the notes matter to you.
 
 ## Run the tests
@@ -47,15 +50,18 @@ pytest
 ```
 flask-notes-app/
 ├── app.py              # routes, database and validation
+├── media.py            # upload validation, safe storage, cleanup helpers
 ├── templates/
 │   ├── base.html
-│   ├── _icons.html, _note_card.html
+│   ├── _icons.html, _note_card.html, _media_card.html
 │   ├── index.html, edit.html
-│   └── archive.html, trash.html, categories.html
+│   ├── archive.html, trash.html, categories.html
+│   └── media_library.html, media_view.html, note_media.html
 ├── static/
 │   └── style.css
 ├── docs/               # UI design system, Agent 3 handoff
 ├── test_app.py         # automated tests
+├── test_media.py       # media attachment tests
 ├── requirements.txt
 ├── .env.example
 ├── README.md

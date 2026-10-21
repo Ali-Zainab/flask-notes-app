@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}{{ item['original_name'] }}{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('note_media', note_id=item['note_id']) }}">{{ icon("arrow-left", 16) }}<span>Attachments for “{{ item['note_title'] }}”</span></a>
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">{{ 'Image' if item['kind'] == 'image' else 'Audio' }}</p>
+      <h1 class="media-title">{{ item['original_name'] }}</h1>
+      <p class="sub">{{ item['size_bytes']|filesize }} · {{ item['mime_type'] }} · added <time datetime="{{ item['created_at'] }}">{{ item['created_at'][:10] }}</time></p>
+    </div>
+  </header>
+
+  <section class="card media-stage" aria-label="Preview">
+    {% if item['kind'] == 'image' %}
+      <img src="{{ url_for('media_file', media_id=item['id']) }}" alt="{{ item['original_name'] }}">
+    {% else %}
+      <audio controls preload="metadata" src="{{ url_for('media_file', media_id=item['id']) }}" aria-label="Play {{ item['original_name'] }}">
+        <a href="{{ url_for('media_file', media_id=item['id']) }}">Download {{ item['original_name'] }}</a>
+      </audio>
+    {% endif %}
+  </section>
+
+  <div class="form-actions">
+    <a class="btn btn-secondary" href="{{ url_for('media_file', media_id=item['id']) }}" target="_blank" rel="noopener">{{ icon("paperclip") }}<span>Open file</span></a>
+    <a class="btn btn-ghost" href="{{ url_for('media_library') }}">Media library</a>
+    <form method="post" action="{{ url_for('delete_media', media_id=item['id']) }}" data-confirm
+          data-confirm-heading="Delete attachment?" data-confirm-label="Delete attachment"
+          data-confirm-message="“{{ item['original_name'] }}” will be permanently deleted. This can’t be undone.">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <button type="submit" class="btn btn-danger-ghost">{{ icon("trash") }}<span>Delete attachment</span></button>
+    </form>
+  </div>
+{% endblock %}

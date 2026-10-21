@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_media_card.html" import media_card %}
+{% block title %}Attachments · {{ note['title'] }}{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ url_for('archive_view' if note['archived_at'] else 'index') }}">{{ icon("arrow-left", 16) }}<span>{{ 'Archive' if note['archived_at'] else 'All notes' }}</span></a>
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Attachments</p>
+      <h1>{{ note['title'] }}</h1>
+      <p class="sub">{{ items|length }} of {{ max_per_note }} attachments · <a href="{{ url_for('edit', note_id=note['id']) }}">Edit note</a></p>
+    </div>
+  </header>
+
+  <section class="card" aria-labelledby="upload-title">
+    <h2 id="upload-title" class="sr-only">Add attachments</h2>
+    <form method="post" action="{{ url_for('upload_media', note_id=note['id']) }}" enctype="multipart/form-data">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="label" for="media-files">Images or audio</label>
+      <input class="field field-border" id="media-files" type="file" name="files" multiple required
+             accept=".png,.jpg,.jpeg,.gif,.webp,.mp3,.wav,.ogg,.oga,.flac,.m4a,.m4b,image/png,image/jpeg,image/gif,image/webp,audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/mp4"
+             aria-describedby="media-hint">
+      <div class="form-foot">
+        <span class="hint" id="media-hint">PNG, JPEG, GIF, WebP (up to {{ max_image_mib }} MiB each) · MP3, WAV, OGG, FLAC, M4A (up to {{ max_audio_mib }} MiB each) · up to {{ max_files }} files at a time. Contents are checked on the server.</span>
+        <button type="submit" class="btn btn-primary btn-end">{{ icon("plus") }}<span>Upload</span></button>
+      </div>
+    </form>
+  </section>
+
+  {% if items %}
+    <ul class="media-grid">{% for item in items %}{{ media_card(item, show_note=False, manage=True) }}{% endfor %}</ul>
+  {% else %}
+    <div class="empty">
+      <span class="empty-icon">{{ icon("paperclip", 28) }}</span>
+      <h2>No attachments yet</h2>
+      <p>Add images or audio recordings to keep them with this note.</p>
+    </div>
+  {% endif %}
+{% endblock %}

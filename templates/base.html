@@ -30,6 +30,9 @@
         <a class="nav-item{% if request.endpoint == 'categories_view' %} is-active{% endif %}" href="{{ url_for('categories_view') }}"{% if request.endpoint == 'categories_view' %} aria-current="page"{% endif %}>
           {{ icon("folder") }}<span>Categories</span>
         </a>
+        <a class="nav-item{% if request.endpoint in ('media_library', 'media_view', 'note_media') %} is-active{% endif %}" href="{{ url_for('media_library') }}"{% if request.endpoint == 'media_library' %} aria-current="page"{% endif %}>
+          {{ icon("image") }}<span>Media</span>
+        </a>
         <a class="nav-item{% if request.endpoint == 'archive_view' %} is-active{% endif %}" href="{{ url_for('archive_view') }}"{% if request.endpoint == 'archive_view' %} aria-current="page"{% endif %}>
           {{ icon("archive") }}<span>Archive</span>
         </a>
@@ -76,6 +79,7 @@
     <a href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} aria-current="page"{% endif %}>{{ icon("notes", 22) }}<span>Notes</span></a>
     <a href="{{ url_for('index') }}#new-note">{{ icon("plus", 22) }}<span>New</span></a>
     <a href="{{ url_for('categories_view') }}"{% if request.endpoint == 'categories_view' %} aria-current="page"{% endif %}>{{ icon("folder", 22) }}<span>Categories</span></a>
+    <a href="{{ url_for('media_library') }}"{% if request.endpoint == 'media_library' %} aria-current="page"{% endif %}>{{ icon("image", 22) }}<span>Media</span></a>
     <a href="{{ url_for('archive_view') }}"{% if request.endpoint == 'archive_view' %} aria-current="page"{% endif %}>{{ icon("archive", 22) }}<span>Archive</span></a>
     <a href="{{ url_for('trash_view') }}"{% if request.endpoint == 'trash_view' %} aria-current="page"{% endif %}>{{ icon("trash", 22) }}<span>Trash</span></a>
   </nav>

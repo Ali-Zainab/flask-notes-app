@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% from "_media_card.html" import media_card %}
+{% block title %}{% if kind == 'image' %}Images{% elif kind == 'audio' %}Audio{% else %}Media library{% endif %}{% endblock %}
+{% block content %}
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Workspace</p>
+      <h1>Media library</h1>
+      <p class="sub">{{ items|length }} {{ 'attachment' if items|length == 1 else 'attachments' }} · from notes in All notes and Archive</p>
+    </div>
+  </header>
+
+  <nav class="chips" aria-label="Filter by type">
+    <a class="chip{% if not kind %} is-active{% endif %}" href="{{ url_for('media_library') }}"{% if not kind %} aria-current="true"{% endif %}>All</a>
+    <a class="chip{% if kind == 'image' %} is-active{% endif %}" href="{{ url_for('media_library', type='image') }}"{% if kind == 'image' %} aria-current="true"{% endif %}>{{ icon("image", 14) }}<span>Images</span></a>
+    <a class="chip{% if kind == 'audio' %} is-active{% endif %}" href="{{ url_for('media_library', type='audio') }}"{% if kind == 'audio' %} aria-current="true"{% endif %}>{{ icon("audio", 14) }}<span>Audio</span></a>
+  </nav>
+
+  {% if items %}
+    <ul class="media-grid">{% for item in items %}{{ media_card(item) }}{% endfor %}</ul>
+  {% else %}
+    <div class="empty">
+      <span class="empty-icon">{{ icon("paperclip", 28) }}</span>
+      <h2>No {{ 'images' if kind == 'image' else 'audio files' if kind == 'audio' else 'attachments' }} yet</h2>
+      <p>Open a note’s attachments to add images or audio. They will appear here.</p>
+      <a class="btn btn-secondary" href="{{ url_for('index') }}">Go to all notes</a>
+    </div>
+  {% endif %}
+{% endblock %}

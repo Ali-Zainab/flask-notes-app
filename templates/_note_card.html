@@ -37,6 +37,7 @@
             </form>
             {% endif %}
             <a class="btn btn-ghost btn-sm" href="{{ url_for('edit', note_id=note['id']) }}">{{ icon("edit", 16) }}<span>Edit</span><span class="sr-only"> note: {{ note['title'] }}</span></a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('note_media', note_id=note['id']) }}">{{ icon("paperclip", 16) }}<span>Files{% if note['media_count'] %} ({{ note['media_count'] }}){% endif %}</span><span class="sr-only"> attachments for note: {{ note['title'] }}</span></a>
             <form method="post" action="{{ url_for('unarchive_note' if mode == 'archived' else 'archive_note', note_id=note['id']) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
               <input type="hidden" name="next" value="{{ back }}">

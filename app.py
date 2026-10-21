@@ -4,8 +4,13 @@ import os
 import secrets
 import sqlite3
 
-from flask import Flask, abort, flash, g, redirect, render_template, request, url_for
+import click
+from flask import (
+    Flask, abort, flash, g, redirect, render_template, request, send_file, url_for,
+)
 from flask_wtf.csrf import CSRFProtect
+
+import media
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS notes (
@@ -39,6 +44,29 @@ NOTE_INDEXES = (
 )
 
 DEFAULT_CATEGORIES = ("Work", "Business", "Personal", "Homework")
+
+# Media attachments (Agent 4). Only metadata lives here; binaries are files in UPLOAD_FOLDER.
+# ON DELETE CASCADE removes rows when a note is permanently deleted; the files are removed
+# by the app after that commit (see release_files in create_app).
+MEDIA_SCHEMA = """
+CREATE TABLE IF NOT EXISTS media (
+    id            INTEGER PRIMARY KEY AUTOINCREMENT,
+    note_id       INTEGER NOT NULL REFERENCES notes(id) ON DELETE CASCADE,
+    storage_key   TEXT NOT NULL UNIQUE,
+    original_name TEXT NOT NULL,
+    kind          TEXT NOT NULL CHECK (kind IN ('image', 'audio')),
+    mime_type     TEXT NOT NULL,
+    size_bytes    INTEGER NOT NULL CHECK (size_bytes > 0),
+    created_at    TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+"""
+MEDIA_INDEXES = (
+    "CREATE INDEX IF NOT EXISTS idx_media_note ON media (note_id)",
+    "CREATE INDEX IF NOT EXISTS idx_media_kind ON media (kind, id)",
+)
+MAX_FILES_PER_UPLOAD = 10
+MAX_ATTACHMENTS_PER_NOTE = 20
+MAX_REQUEST_BYTES = 64 * media.MIB
 
 MAX_TITLE = 100
 MAX_CONTENT = 2000
@@ -105,6 +133,9 @@ def init_db(path):
                     conn.execute(f"ALTER TABLE notes ADD COLUMN {column} {definition}")
             for statement in NOTE_INDEXES:
                 conn.execute(statement)
+            conn.execute(MEDIA_SCHEMA)
+            for statement in MEDIA_INDEXES:
+                conn.execute(statement)
             conn.executemany(
                 "INSERT OR IGNORE INTO categories (name) VALUES (?)",
                 [(name,) for name in DEFAULT_CATEGORIES],
@@ -123,6 +154,10 @@ def create_app(test_config=None):
         APP_ENV=os.environ.get("APP_ENV", "production").strip().lower(),
         SECRET_KEY=os.environ.get("SECRET_KEY"),
         DATABASE=os.environ.get("DATABASE", os.path.join(app.root_path, "notes.db")),
+        UPLOAD_FOLDER=os.environ.get("UPLOAD_FOLDER", os.path.join(app.root_path, "uploads")),
+        MAX_CONTENT_LENGTH=MAX_REQUEST_BYTES,
+        MAX_IMAGE_BYTES=media.MAX_IMAGE_BYTES,
+        MAX_AUDIO_BYTES=media.MAX_AUDIO_BYTES,
     )
     if test_config:
         app.config.update(test_config)
@@ -180,7 +215,8 @@ def create_app(test_config=None):
 
     def list_notes(state, query="", category_id=None):
         sql = (
-            "SELECT notes.*, categories.name AS category_name FROM notes "
+            "SELECT notes.*, categories.name AS category_name, "
+            "(SELECT COUNT(*) FROM media WHERE media.note_id = notes.id) AS media_count FROM notes "
             "LEFT JOIN categories ON categories.id = notes.category_id "
             "WHERE " + STATE_FILTERS[state]
         )
@@ -193,6 +229,29 @@ def create_app(test_config=None):
             params.append(category_id)
         sql += " ORDER BY " + STATE_ORDER[state]
         return get_db().execute(sql, params).fetchall()
+
+    app.add_template_filter(media.human_size, "filesize")
+
+    def upload_root():
+        return app.config["UPLOAD_FOLDER"]
+
+    def release_files(keys):
+        """Delete files whose rows are already gone. Runs only AFTER the DB commit, so a failure
+        can leave an unreferenced file (harmless, cleaned by `flask cleanup-media`) but never a
+        row pointing at a missing file. A file still referenced by any row is never deleted."""
+        keys = list(keys)
+        if not keys:
+            return
+        db, still_used = get_db(), set()
+        for i in range(0, len(keys), 500):
+            part = keys[i:i + 500]
+            marks = ",".join("?" * len(part))  # placeholders only; values are bound
+            still_used |= {r[0] for r in db.execute(
+                f"SELECT storage_key FROM media WHERE storage_key IN ({marks})", part)}
+        failed = media.remove_files(upload_root(), [k for k in keys if k not in still_used])
+        if failed:
+            flash(f"{len(failed)} attachment file(s) could not be removed from disk. They are no longer "
+                  "linked to any note; run \u201cflask --app app cleanup-media\u201d to remove them.", "error")
 
     def redirect_back(default):
         target = request.form.get("next", default)
@@ -363,22 +422,158 @@ def create_app(test_config=None):
         """Permanent deletion. Only works on notes that are already in Trash."""
         get_note_or_404(note_id, trashed=True)
         db = get_db()
+        keys = [r["storage_key"] for r in db.execute(
+            "SELECT storage_key FROM media WHERE note_id = ?", (note_id,))]
         db.execute("DELETE FROM notes WHERE id = ? AND trashed_at IS NOT NULL", (note_id,))
-        db.commit()
+        db.commit()  # media rows go with the note (ON DELETE CASCADE)
+        release_files(keys)
         flash("Note permanently deleted.", "success")
         return redirect_back("trash_view")
 
     @app.route("/trash/empty", methods=["POST"])
     def empty_trash():
         db = get_db()
+        keys = [r["storage_key"] for r in db.execute(
+            "SELECT storage_key FROM media WHERE note_id IN "
+            "(SELECT id FROM notes WHERE trashed_at IS NOT NULL)")]
         cursor = db.execute("DELETE FROM notes WHERE trashed_at IS NOT NULL")
         db.commit()
+        release_files(keys)
         if cursor.rowcount:
             noun = "note" if cursor.rowcount == 1 else "notes"
             flash(f"Trash emptied: {cursor.rowcount} {noun} permanently deleted.", "success")
         else:
             flash("Trash is already empty.", "success")
         return redirect(url_for("trash_view"))
+
+    # ---- media attachments (Agent 4) ----
+    # Policy: media follows its note. Notes in Trash hide their attachments (library, viewer and
+    # file URLs return 404, uploads/deletes are refused) and Restore brings them back untouched.
+    # Archived notes keep full access.
+    MEDIA_SELECT = (
+        "SELECT media.*, notes.title AS note_title FROM media "
+        "JOIN notes ON notes.id = media.note_id WHERE notes.trashed_at IS NULL"
+    )
+
+    def get_media_or_404(media_id):
+        row = get_db().execute(MEDIA_SELECT + " AND media.id = ?", (media_id,)).fetchone()
+        if row is None:
+            abort(404)
+        return row
+
+    @app.errorhandler(413)
+    def request_too_large(_error):
+        limit = app.config["MAX_CONTENT_LENGTH"] // media.MIB
+        flash(f"That upload is too large. Keep each upload under {limit} MiB in total.", "error")
+        return redirect(url_for("media_library"))
+
+    @app.route("/media")
+    def media_library():
+        kind = request.args.get("type", "").strip()
+        if kind not in ("", "image", "audio"):
+            abort(404)
+        sql, params = MEDIA_SELECT, []
+        if kind:
+            sql += " AND media.kind = ?"
+            params.append(kind)
+        items = get_db().execute(sql + " ORDER BY media.id DESC", params).fetchall()
+        return render_template("media_library.html", items=items, kind=kind)
+
+    @app.route("/media/<int:media_id>")
+    def media_view(media_id):
+        return render_template("media_view.html", item=get_media_or_404(media_id))
+
+    @app.route("/media/<int:media_id>/file")
+    def media_file(media_id):
+        """Streams one stored file by database id. The path comes from a validated storage key,
+        never from the URL, and the MIME type is the one verified at upload time."""
+        item = get_media_or_404(media_id)
+        try:
+            path = media.upload_path(upload_root(), item["storage_key"])
+            response = send_file(
+                path, mimetype=item["mime_type"], conditional=True,
+                download_name=media.clean_filename(item["original_name"]),
+            )
+        except (ValueError, FileNotFoundError):
+            abort(404)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'none'; media-src 'self'; sandbox allow-same-origin"
+        )
+        response.headers["Cache-Control"] = "private, max-age=0, must-revalidate"
+        return response
+
+    @app.route("/notes/<int:note_id>/media")
+    def note_media(note_id):
+        note = get_note_or_404(note_id, trashed=False)
+        items = get_db().execute(
+            MEDIA_SELECT + " AND media.note_id = ? ORDER BY media.id DESC", (note_id,)
+        ).fetchall()
+        return render_template(
+            "note_media.html", note=note, items=items,
+            max_files=MAX_FILES_PER_UPLOAD, max_per_note=MAX_ATTACHMENTS_PER_NOTE,
+            max_image_mib=app.config["MAX_IMAGE_BYTES"] // media.MIB,
+            max_audio_mib=app.config["MAX_AUDIO_BYTES"] // media.MIB,
+        )
+
+    @app.route("/notes/<int:note_id>/media", methods=["POST"])
+    def upload_media(note_id):
+        get_note_or_404(note_id, trashed=False)
+        back = redirect(url_for("note_media", note_id=note_id))
+        files = [f for f in request.files.getlist("files") if f and f.filename]
+        db = get_db()
+        existing = db.execute("SELECT COUNT(*) FROM media WHERE note_id = ?", (note_id,)).fetchone()[0]
+        if not files:
+            flash("Choose at least one file to upload.", "error")
+            return back
+        if len(files) > MAX_FILES_PER_UPLOAD:
+            flash(f"Upload at most {MAX_FILES_PER_UPLOAD} files at a time.", "error")
+            return back
+        if existing + len(files) > MAX_ATTACHMENTS_PER_NOTE:
+            flash(f"A note can have at most {MAX_ATTACHMENTS_PER_NOTE} attachments.", "error")
+            return back
+        limits = {"image": app.config["MAX_IMAGE_BYTES"], "audio": app.config["MAX_AUDIO_BYTES"]}
+        saved, errors = 0, []
+        for upload in files:
+            name = media.clean_filename(upload.filename)
+            info, problem = media.save_stream(upload.stream, upload.filename, upload_root(), limits)
+            if problem:
+                errors.append(f"\u201c{name}\u201d {problem}")
+                continue
+            try:
+                db.execute(
+                    "INSERT INTO media (note_id, storage_key, original_name, kind, mime_type, size_bytes) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
+                    (note_id, info["key"], name, info["kind"], info["mime"], info["size"]),
+                )
+                db.commit()
+                saved += 1
+            except sqlite3.Error:
+                db.rollback()
+                media.remove_files(upload_root(), [info["key"]])  # never leave an orphan file
+                errors.append(f"\u201c{name}\u201d could not be saved.")
+        for message in errors:
+            flash(message, "error")
+        if saved:
+            flash(f"{saved} attachment{'s' if saved != 1 else ''} added.", "success")
+        return back
+
+    @app.route("/media/<int:media_id>/delete", methods=["POST"])
+    def delete_media(media_id):
+        item = get_media_or_404(media_id)
+        db = get_db()
+        db.execute("DELETE FROM media WHERE id = ?", (media_id,))
+        db.commit()
+        release_files([item["storage_key"]])
+        flash("Attachment deleted.", "success")
+        return redirect(url_for("note_media", note_id=item["note_id"]))
+
+    @app.cli.command("cleanup-media")
+    def cleanup_media_command():
+        """Delete files in UPLOAD_FOLDER that no attachment row references."""
+        known = [r["storage_key"] for r in get_db().execute("SELECT storage_key FROM media")]
+        removed = media.cleanup_orphans(upload_root(), known)
+        click.echo(f"Removed {len(removed)} unreferenced file(s).")
 
     return app
 

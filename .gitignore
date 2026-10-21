@@ -3,3 +3,6 @@ __pycache__/
 .pytest_cache/
 venv/
 .venv/
+
+# Uploaded media (binaries live on disk, never in git)
+uploads/

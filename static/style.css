@@ -295,7 +295,7 @@ a.chip:hover { border-color: var(--border-strong); color: var(--text); }
   }
   .main { padding-top: 1.5rem; padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
   .bottom-nav {
-    display: grid; grid-template-columns: repeat(5, 1fr); position: fixed; inset: auto 0 0 0; z-index: 30;
+    display: grid; grid-template-columns: repeat(6, 1fr); position: fixed; inset: auto 0 0 0; z-index: 30;
     background: var(--surface); border-top: 1px solid var(--border);
     padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom));
   }
@@ -323,3 +323,25 @@ a.chip:hover { border-color: var(--border-strong); color: var(--text); }
   * { transition: none !important; scroll-behavior: auto !important; }
   .note-card article:hover, .note-card article:focus-within { transform: none; }
 }
+
+/* ---------- media attachments (Agent 4) ---------- */
+.media-grid { list-style: none; margin: 0 0 1rem; padding: 0; display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(min(100%, 230px), 1fr)); }
+.media-card article { display: flex; flex-direction: column; gap: 0.5rem; height: 100%; padding: 0.7rem 0.7rem 0.8rem; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow-sm); }
+.media-preview { display: flex; flex-direction: column; justify-content: center; gap: 0.5rem; min-height: 150px; border-radius: var(--radius-sm); background: var(--surface-2); overflow: hidden; }
+.media-preview a { display: block; }
+.media-preview img { display: block; width: 100%; height: 160px; object-fit: cover; }
+.media-preview audio { width: calc(100% - 1rem); margin: 0 0.5rem 0.5rem; }
+.media-audio-icon { align-self: center; display: grid; place-items: center; width: 52px; height: 52px; margin-top: 0.7rem; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.media-name { font-size: 0.95rem; font-weight: 600; overflow-wrap: anywhere; }
+.media-name a { color: var(--text); text-decoration: none; }
+.media-name a:hover { text-decoration: underline; }
+.media-meta, .media-note { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--muted); }
+.media-note a { color: var(--muted); overflow-wrap: anywhere; }
+.media-card form { margin-top: auto; }
+.media-stage { display: grid; place-items: center; padding: 1rem; }
+.media-stage img { max-width: 100%; max-height: 70vh; height: auto; border-radius: var(--radius-sm); }
+.media-stage audio { width: min(100%, 560px); }
+.media-title { overflow-wrap: anywhere; }
+.form-actions form { display: block; }
+.field[type="file"] { padding: 0.55rem; }
+.field[type="file"]:invalid { border-color: var(--border); }

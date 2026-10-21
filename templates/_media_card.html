@@ -1,0 +1,35 @@
+{# Attachment card used on the Media Library and a note's attachment page.
+   show_note: link back to the owning note. manage: show the delete action. #}
+{% from "_icons.html" import icon %}
+{% macro media_card(item, show_note=True, manage=False) %}
+  <li class="media-card">
+    <article>
+      <div class="media-preview">
+        {% if item['kind'] == 'image' %}
+          <a href="{{ url_for('media_view', media_id=item['id']) }}" aria-label="View image {{ item['original_name'] }}">
+            <img src="{{ url_for('media_file', media_id=item['id']) }}" alt="{{ item['original_name'] }}" loading="lazy">
+          </a>
+        {% else %}
+          <span class="media-audio-icon">{{ icon("audio", 28) }}</span>
+          <audio controls preload="none" src="{{ url_for('media_file', media_id=item['id']) }}" aria-label="Play {{ item['original_name'] }}">
+            <a href="{{ url_for('media_file', media_id=item['id']) }}">Download {{ item['original_name'] }}</a>
+          </audio>
+        {% endif %}
+      </div>
+      <h3 class="media-name"><a href="{{ url_for('media_view', media_id=item['id']) }}">{{ item['original_name'] }}</a></h3>
+      <p class="media-meta">
+        <span class="chip chip-static">{{ icon("image" if item['kind'] == 'image' else "audio", 14) }}{{ 'Image' if item['kind'] == 'image' else 'Audio' }}</span>
+        <span>{{ item['size_bytes']|filesize }}</span> · <time datetime="{{ item['created_at'] }}">{{ item['created_at'][:10] }}</time>
+      </p>
+      {% if show_note %}<p class="media-note">{{ icon("paperclip", 14) }}<a href="{{ url_for('note_media', note_id=item['note_id']) }}">{{ item['note_title'] }}</a></p>{% endif %}
+      {% if manage %}
+      <form method="post" action="{{ url_for('delete_media', media_id=item['id']) }}" data-confirm
+            data-confirm-heading="Delete attachment?" data-confirm-label="Delete attachment"
+            data-confirm-message="“{{ item['original_name'] }}” will be permanently deleted from this note. This can’t be undone.">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-danger-ghost btn-sm">{{ icon("trash", 16) }}<span>Delete</span><span class="sr-only"> attachment: {{ item['original_name'] }}</span></button>
+      </form>
+      {% endif %}
+    </article>
+  </li>
+{% endmacro %}

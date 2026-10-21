@@ -32,6 +32,7 @@
       </div>
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">{{ icon("check") }}<span>Save changes</span></button>
+        <a class="btn btn-ghost" href="{{ url_for('note_media', note_id=note['id']) }}">{{ icon("paperclip") }}<span>Attachments</span></a>
         <a class="btn btn-ghost" href="{{ url_for('index') }}">Cancel</a>
       </div>
     </form>
