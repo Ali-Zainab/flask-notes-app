@@ -1,0 +1,63 @@
+{# Search, filter and sort controls shared by All notes, Archive and Trash.
+   Needs: filters, endpoint, categories, tags, sort_options. All controls are a plain GET form,
+   so it works without JavaScript and every state is a shareable URL. #}
+{% from "_icons.html" import icon %}
+{% set f = filters %}
+{% set any_active = f.q or f.category or f.tag or f.pinned or f.sort != f.default_sort %}
+<form class="filters" role="search" method="get" action="{{ url_for(endpoint) }}" aria-label="Search and filter notes">
+  <div class="searchbar">
+    <label class="sr-only" for="q">Search notes</label>
+    <span class="searchbar-icon">{{ icon("search") }}</span>
+    <input id="q" type="search" name="q" value="{{ f.q }}" placeholder="Search notes…" maxlength="200">
+    {% if endpoint == 'index' and f.category %}<input type="hidden" name="category" value="{{ f.category['id'] }}">{% endif %}
+    <button type="submit" class="btn btn-secondary">Search</button>
+    {% if f.q %}<a class="btn btn-ghost" href="{{ filter_url(endpoint, f, q=None) }}">Clear</a>{% endif %}
+  </div>
+  <div class="filter-row">
+    {% if endpoint != 'index' %}
+    <div class="filter-field">
+      <label for="f-category">Category</label>
+      <select class="field-select" id="f-category" name="category">
+        <option value="">All categories</option>
+        {% for c in categories %}<option value="{{ c['id'] }}"{% if f.category and f.category['id'] == c['id'] %} selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
+      </select>
+    </div>
+    {% endif %}
+    <div class="filter-field">
+      <label for="f-tag">Tag</label>
+      <select class="field-select" id="f-tag" name="tag">
+        <option value="">Any tag</option>
+        {% for t in tags %}<option value="{{ t['id'] }}"{% if f.tag and f.tag['id'] == t['id'] %} selected{% endif %}>{{ t['name'] }}</option>{% endfor %}
+      </select>
+    </div>
+    <div class="filter-field">
+      <label for="f-sort">Sort by</label>
+      <select class="field-select" id="f-sort" name="sort">
+        {% for value, label in sort_options %}<option value="{{ value }}"{% if f.sort == value %} selected{% endif %}>{{ label }}</option>{% endfor %}
+      </select>
+    </div>
+    <label class="check-field"><input type="checkbox" name="pinned" value="1"{% if f.pinned %} checked{% endif %}><span>Pinned only</span></label>
+    <button type="submit" class="btn btn-secondary btn-sm">Apply</button>
+  </div>
+</form>
+
+{% if endpoint == 'index' %}
+<nav class="chips" aria-label="Filter by category">
+  <a class="chip{% if not f.category %} is-active{% endif %}" href="{{ filter_url('index', f, category=None) }}"{% if not f.category %} aria-current="true"{% endif %}>All</a>
+  {% for c in categories %}
+    {% set on = f.category and f.category['id'] == c['id'] %}
+    <a class="chip{% if on %} is-active{% endif %}" href="{{ filter_url('index', f, category=c['id']) }}"{% if on %} aria-current="true"{% endif %}>{{ icon("folder", 14) }}<span>{{ c['name'] }}</span></a>
+  {% endfor %}
+</nav>
+{% endif %}
+
+{% if any_active %}
+<ul class="active-filters" aria-label="Active filters">
+  {% if f.q %}<li><a class="chip is-active" href="{{ filter_url(endpoint, f, q=None) }}">Search: “{{ f.q }}”{{ icon("x", 12) }}<span class="sr-only"> Remove search filter</span></a></li>{% endif %}
+  {% if f.category %}<li><a class="chip is-active" href="{{ filter_url(endpoint, f, category=None) }}">Category: {{ f.category['name'] }}{{ icon("x", 12) }}<span class="sr-only"> Remove category filter</span></a></li>{% endif %}
+  {% if f.tag %}<li><a class="chip is-active" href="{{ filter_url(endpoint, f, tag=None) }}">Tag: {{ f.tag['name'] }}{{ icon("x", 12) }}<span class="sr-only"> Remove tag filter</span></a></li>{% endif %}
+  {% if f.pinned %}<li><a class="chip is-active" href="{{ filter_url(endpoint, f, pinned=None) }}">Pinned only{{ icon("x", 12) }}<span class="sr-only"> Remove pinned filter</span></a></li>{% endif %}
+  {% if f.sort != f.default_sort %}<li><a class="chip is-active" href="{{ filter_url(endpoint, f, sort=None) }}">Sorted: {% for value, label in sort_options %}{% if value == f.sort %}{{ label }}{% endif %}{% endfor %}{{ icon("x", 12) }}<span class="sr-only"> Reset sort order</span></a></li>{% endif %}
+  <li><a class="btn btn-ghost btn-sm" href="{{ url_for(endpoint) }}">Reset all filters</a></li>
+</ul>
+{% endif %}

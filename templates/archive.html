@@ -11,8 +11,17 @@
     </div>
   </header>
 
+  {% include "_filters.html" %}
+
   {% if notes %}
-    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "archived", "archive_view") }}{% endfor %}</ul>
+    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "archived", "archive_view", return_to) }}{% endfor %}</ul>
+  {% elif filters.q or filters.category or filters.tag or filters.pinned %}
+    <div class="empty">
+      <span class="empty-icon">{{ icon("search", 28) }}</span>
+      <h2>No archived notes match these filters</h2>
+      <p>Try removing a filter, or reset them to see everything in the Archive.</p>
+      <a class="btn btn-secondary" href="{{ url_for('archive_view') }}">Reset all filters</a>
+    </div>
   {% else %}
     <div class="empty">
       <span class="empty-icon">{{ icon("archive", 28) }}</span>

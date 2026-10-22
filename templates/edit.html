@@ -2,13 +2,13 @@
 {% from "_icons.html" import icon %}
 {% block title %}Edit note{% endblock %}
 {% block content %}
-  <a class="back-link" href="{{ url_for('index') }}">{{ icon("arrow-left", 16) }}<span>All notes</span></a>
+  <a class="back-link" href="{{ return_url }}">{{ icon("arrow-left", 16) }}<span>All notes</span></a>
 
   <header class="page-head">
     <div>
       <p class="eyebrow">Editing</p>
       <h1>Edit note</h1>
-      <p class="sub">Created <time datetime="{{ note['created_at'] }}">{{ note['created_at'][:10] }}</time></p>
+      <p class="sub">Created <time datetime="{{ note['created_at'] }}">{{ note['created_at'][:10] }}</time>{% if note['updated_at'] %} · Updated <time datetime="{{ note['updated_at'] }}">{{ note['updated_at'][:10] }}</time>{% endif %}</p>
     </div>
   </header>
 
@@ -16,6 +16,8 @@
     <h2 id="editor-title" class="sr-only">Note details</h2>
     <form method="post">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="tags_submitted" value="1">
+      {% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
       <label class="label" for="edit-title">Title</label>
       <input class="field field-title" id="edit-title" type="text" name="title" value="{{ title }}" maxlength="100" required>
       <label class="label" for="edit-content">Content</label>
@@ -26,6 +28,19 @@
         <option value="">No category</option>
         {% for c in categories %}<option value="{{ c['id'] }}"{% if sel == c['id']|string %} selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
       </select>
+      <fieldset class="tag-picker">
+        <legend class="label">Tags</legend>
+        {% if tags %}
+        <div class="tag-options">
+          {% for t in tags %}<label class="tag-option"><input type="checkbox" name="tag_ids" value="{{ t['id'] }}"{% if t['id']|string in selected_tags %} checked{% endif %}><span>{{ t['name'] }}</span></label>{% endfor %}
+        </div>
+        {% else %}
+        <p class="hint">No tags yet. Add some below.</p>
+        {% endif %}
+        <label class="label" for="edit-new-tags">Add new tags</label>
+        <input class="field field-border" id="edit-new-tags" type="text" name="new_tags" value="{{ new_tags }}" maxlength="400" placeholder="e.g. ideas, urgent" aria-describedby="new-tags-hint" autocomplete="off">
+        <p class="hint" id="new-tags-hint">Separate with commas. Up to 30 characters each, 10 tags per note. Names that already exist are reused.</p>
+      </fieldset>
       <div class="form-foot">
         <span class="hint">Title up to 100 characters · note up to 2000</span>
         <span class="counter" data-counter-for="edit-content" aria-hidden="true"></span>
@@ -33,7 +48,7 @@
       <div class="form-actions">
         <button type="submit" class="btn btn-primary">{{ icon("check") }}<span>Save changes</span></button>
         <a class="btn btn-ghost" href="{{ url_for('note_media', note_id=note['id']) }}">{{ icon("paperclip") }}<span>Attachments</span></a>
-        <a class="btn btn-ghost" href="{{ url_for('index') }}">Cancel</a>
+        <a class="btn btn-ghost" href="{{ return_url }}">Cancel</a>
       </div>
     </form>
   </section>

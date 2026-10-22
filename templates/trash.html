@@ -12,7 +12,7 @@
     {% if notes %}
     <form method="post" action="{{ url_for('empty_trash') }}" data-confirm
           data-confirm-heading="Empty Trash?"
-          data-confirm-message="All {{ notes|length }} {{ 'note' if notes|length == 1 else 'notes' }} in Trash will be permanently deleted. This can’t be undone."
+          data-confirm-message="Every note in Trash{% if filters.q or filters.category or filters.tag or filters.pinned %} (not only the filtered ones){% endif %} will be permanently deleted. This can’t be undone."
           data-confirm-label="Empty Trash">
       <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
       <button type="submit" class="btn btn-danger-ghost">{{ icon("trash") }}<span>Empty Trash</span></button>
@@ -22,8 +22,17 @@
 
   <p class="notice">{{ icon("alert", 18) }}<span>Notes stay in Trash until you restore them or delete them permanently. Nothing here is deleted automatically.</span></p>
 
+  {% include "_filters.html" %}
+
   {% if notes %}
-    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "trashed", "trash_view") }}{% endfor %}</ul>
+    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "trashed", "trash_view", return_to) }}{% endfor %}</ul>
+  {% elif filters.q or filters.category or filters.tag or filters.pinned %}
+    <div class="empty">
+      <span class="empty-icon">{{ icon("search", 28) }}</span>
+      <h2>No notes in Trash match these filters</h2>
+      <p>Try removing a filter, or reset them to see everything in Trash.</p>
+      <a class="btn btn-secondary" href="{{ url_for('trash_view') }}">Reset all filters</a>
+    </div>
   {% else %}
     <div class="empty">
       <span class="empty-icon">{{ icon("trash", 28) }}</span>

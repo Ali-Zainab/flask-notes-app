@@ -27,8 +27,11 @@
         <a class="nav-item{% if request.endpoint in ('index', 'edit') %} is-active{% endif %}" href="{{ url_for('index') }}"{% if request.endpoint == 'index' %} aria-current="page"{% endif %}>
           {{ icon("notes") }}<span>All notes</span>
         </a>
-        <a class="nav-item{% if request.endpoint == 'categories_view' %} is-active{% endif %}" href="{{ url_for('categories_view') }}"{% if request.endpoint == 'categories_view' %} aria-current="page"{% endif %}>
+        <a class="nav-item{% if request.endpoint in ('categories_view', 'confirm_delete_category') %} is-active{% endif %}" href="{{ url_for('categories_view') }}"{% if request.endpoint == 'categories_view' %} aria-current="page"{% endif %}>
           {{ icon("folder") }}<span>Categories</span>
+        </a>
+        <a class="nav-item{% if request.endpoint in ('tags_view', 'confirm_delete_tag') %} is-active{% endif %}" href="{{ url_for('tags_view') }}"{% if request.endpoint == 'tags_view' %} aria-current="page"{% endif %}>
+          {{ icon("tag") }}<span>Tags</span>
         </a>
         <a class="nav-item{% if request.endpoint in ('media_library', 'media_view', 'note_media') %} is-active{% endif %}" href="{{ url_for('media_library') }}"{% if request.endpoint == 'media_library' %} aria-current="page"{% endif %}>
           {{ icon("image") }}<span>Media</span>

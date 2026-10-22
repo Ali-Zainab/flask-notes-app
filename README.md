@@ -8,11 +8,13 @@ A small full-stack web app for keeping notes. The backend is Flask with a SQLite
 - Archive: tuck notes out of All notes without deleting them, and unarchive any time
 - Trash: deleting moves a note to Trash; restore it, or delete it permanently from there (nothing is deleted automatically)
 - Media: attach images (PNG, JPEG, GIF, WebP) and audio (MP3, WAV, OGG, FLAC, M4A) to notes; browse everything in the Media Library (see `docs/MEDIA.md`)
-- Search notes by title or content (All notes only; archived and trashed notes are excluded)
+- Category management: rename a category, or delete it after a confirmation page (its notes are kept and become uncategorized)
+- Tags: label a note with several tags and filter by tag; create and delete tags on the Tags page (deleting a tag never deletes notes)
+- Search, filter and sort: search title and content, combine with category, tag and pinned filters, and sort by pinned, recently updated, recently created or title. The same controls work in All notes, Archive and Trash, and active filters are shown (and kept after pin/archive/trash actions)
 - Server-side validation (title required, length limits) with flash messages
-- Pinned notes always appear first
+- With the default "Pinned first" sort, pinned notes appear first
 - Safe output: note text is HTML-escaped (no script injection)
-- Automated tests with `pytest` and Flask's test client (`test_app.py`)
+- Automated tests with `pytest` and Flask's test client (`test_app.py`, `test_media.py`, `test_organization.py`)
 
 ## Setup
 ```
@@ -37,7 +39,7 @@ deployment environment.
 
 ## Upgrading an existing database
 Starting the app upgrades `notes.db` in place, automatically and safely: it only *adds* the
-`categories` table and three nullable note columns (`category_id`, `archived_at`, `trashed_at`),
+`categories`, `tags`, `note_tags`, `media` and `app_meta` tables and nullable note columns (`category_id`, `archived_at`, `trashed_at`, `updated_at`),
 creates the `media` table, then seeds the default categories. Existing notes keep their ids, text, pin state and dates, and
 repeated starts change nothing. Back up `notes.db` before upgrading if the notes matter to you.
 
@@ -53,15 +55,16 @@ flask-notes-app/
 ├── media.py            # upload validation, safe storage, cleanup helpers
 ├── templates/
 │   ├── base.html
-│   ├── _icons.html, _note_card.html, _media_card.html
+│   ├── _icons.html, _note_card.html, _media_card.html, _filters.html
 │   ├── index.html, edit.html
-│   ├── archive.html, trash.html, categories.html
+│   ├── archive.html, trash.html, categories.html, tags.html, confirm_delete.html
 │   └── media_library.html, media_view.html, note_media.html
 ├── static/
 │   └── style.css
-├── docs/               # UI design system, Agent 3 handoff
+├── docs/               # UI design system, media, Agent 3 and Agent 5 handoffs
 ├── test_app.py         # automated tests
 ├── test_media.py       # media attachment tests
+├── test_organization.py # search, filters, sorting, tags, category management
 ├── requirements.txt
 ├── .env.example
 ├── README.md

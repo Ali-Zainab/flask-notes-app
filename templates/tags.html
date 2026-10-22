@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Tags{% endblock %}
+{% block content %}
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Workspace</p>
+      <h1>Tags</h1>
+      <p class="sub">{{ tags|length }} {{ 'tag' if tags|length == 1 else 'tags' }} · a note can have several; counts show notes in All notes</p>
+    </div>
+    <a class="btn btn-secondary" href="{{ url_for('categories_view') }}">{{ icon("folder") }}<span>Manage categories</span></a>
+  </header>
+
+  <section class="card composer" aria-labelledby="tag-form-title">
+    <h2 id="tag-form-title" class="sr-only">New tag</h2>
+    <form method="post" action="{{ url_for('add_tag') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <label class="label" for="tag-name">New tag</label>
+      <input class="field field-border" id="tag-name" type="text" name="name" placeholder="e.g. ideas" maxlength="{{ max_name }}" required autocomplete="off">
+      <div class="form-foot">
+        <span class="hint">Up to {{ max_name }} characters · names are not case-sensitive · assign tags when you add or edit a note</span>
+        <button type="submit" class="btn btn-primary btn-end">{{ icon("plus") }}<span>Add tag</span></button>
+      </div>
+    </form>
+  </section>
+
+  {% if tags %}
+  <ul class="notes-grid">
+    {% for t in tags %}
+      <li class="category-card">
+        <a class="category-link" href="{{ url_for('index', tag=t['id']) }}">
+          <span class="category-name">{{ icon("tag", 18) }}<span>{{ t['name'] }}</span></span>
+          <span class="category-count">{{ t['note_count'] }}<span class="sr-only"> {{ 'note' if t['note_count'] == 1 else 'notes' }}</span></span>
+        </a>
+        <div class="category-actions">
+          <a class="btn btn-danger-ghost btn-sm" href="{{ url_for('confirm_delete_tag', tag_id=t['id']) }}">{{ icon("trash", 16) }}<span>Delete</span><span class="sr-only"> tag: {{ t['name'] }}</span></a>
+        </div>
+      </li>
+    {% endfor %}
+  </ul>
+  {% else %}
+  <div class="empty">
+    <span class="empty-icon">{{ icon("tag", 28) }}</span>
+    <h2>No tags yet</h2>
+    <p>Tags label notes across categories. Create one above, or type tags when you add or edit a note.</p>
+  </div>
+  {% endif %}
+{% endblock %}

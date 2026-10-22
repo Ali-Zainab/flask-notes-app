@@ -8,6 +8,7 @@
       <h1>Categories</h1>
       <p class="sub">{{ categories|length }} {{ 'category' if categories|length == 1 else 'categories' }} · counts show notes in All notes</p>
     </div>
+    <a class="btn btn-secondary" href="{{ url_for('tags_view') }}">{{ icon("tag") }}<span>Manage tags</span></a>
   </header>
 
   <section class="card composer" aria-labelledby="category-form-title">
@@ -26,10 +27,22 @@
   <ul class="notes-grid">
     {% for c in categories %}
       <li class="category-card">
-        <a href="{{ url_for('index', category=c['id']) }}">
+        <a class="category-link" href="{{ url_for('index', category=c['id']) }}">
           <span class="category-name">{{ icon("folder", 18) }}<span>{{ c['name'] }}</span></span>
           <span class="category-count">{{ c['note_count'] }}<span class="sr-only"> {{ 'note' if c['note_count'] == 1 else 'notes' }}</span></span>
         </a>
+        <div class="category-actions">
+          <details class="rename">
+            <summary class="btn btn-ghost btn-sm">{{ icon("edit", 16) }}<span>Rename</span><span class="sr-only"> category: {{ c['name'] }}</span></summary>
+            <form class="rename-form" method="post" action="{{ url_for('rename_category', category_id=c['id']) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <label class="sr-only" for="rename-{{ c['id'] }}">New name for {{ c['name'] }}</label>
+              <input class="field field-border" id="rename-{{ c['id'] }}" type="text" name="name" value="{{ c['name'] }}" maxlength="{{ max_name }}" required autocomplete="off">
+              <button type="submit" class="btn btn-primary btn-sm">Save</button>
+            </form>
+          </details>
+          <a class="btn btn-danger-ghost btn-sm" href="{{ url_for('confirm_delete_category', category_id=c['id']) }}">{{ icon("trash", 16) }}<span>Delete</span><span class="sr-only"> category: {{ c['name'] }}</span></a>
+        </div>
       </li>
     {% endfor %}
   </ul>

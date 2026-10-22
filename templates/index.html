@@ -26,6 +26,8 @@
         <option value="">No category</option>
         {% for c in categories %}<option value="{{ c['id'] }}"{% if active_category and active_category['id'] == c['id'] %} selected{% endif %}>{{ c['name'] }}</option>{% endfor %}
       </select>
+      <label class="sr-only" for="new-tags">Tags</label>
+      <input class="field field-border" id="new-tags" type="text" name="new_tags" placeholder="Tags, separated by commas (optional)" maxlength="400" autocomplete="off">
       <div class="form-foot">
         <span class="hint">Title up to 100 characters · note up to 2000</span>
         <span class="counter" data-counter-for="new-content" aria-hidden="true"></span>
@@ -34,36 +36,25 @@
     </form>
   </section>
 
-  <form class="searchbar" role="search" method="get" action="{{ url_for('index') }}">
-    <label class="sr-only" for="q">Search notes</label>
-    <span class="searchbar-icon">{{ icon("search") }}</span>
-    <input id="q" type="search" name="q" value="{{ query }}" placeholder="Search notes…">
-    {% if active_category %}<input type="hidden" name="category" value="{{ active_category['id'] }}">{% endif %}
-    <button type="submit" class="btn btn-secondary">Search</button>
-    {% if query %}<a class="btn btn-ghost" href="{{ url_for('index', category=active_category['id'] if active_category else None) }}">Clear</a>{% endif %}
-  </form>
+  {% include "_filters.html" %}
 
-  <nav class="chips" aria-label="Filter by category">
-    <a class="chip{% if not active_category %} is-active{% endif %}" href="{{ url_for('index', q=query or None) }}"{% if not active_category %} aria-current="true"{% endif %}>All</a>
-    {% for c in categories %}
-      {% set on = active_category and active_category['id'] == c['id'] %}
-      <a class="chip{% if on %} is-active{% endif %}" href="{{ url_for('index', category=c['id'], q=query or None) }}"{% if on %} aria-current="true"{% endif %}>{{ icon("folder", 14) }}<span>{{ c['name'] }}</span></a>
-    {% endfor %}
-  </nav>
-
-  {% if notes %}
+  {% if notes and filters.sort != 'pinned' %}
+    {# Any sort other than "Pinned first" is one flat list, so the order is exactly what was asked for. #}
+    <p class="hint list-note">Sorted by {% for value, label in sort_options %}{% if value == filters.sort %}{{ label|lower }}{% endif %}{% endfor %} · pinned notes keep their pin mark.</p>
+    <ul class="notes-grid">{% for note in notes %}{{ note_card(note, "active", "index", return_to) }}{% endfor %}</ul>
+  {% elif notes %}
     {% set pinned_notes = notes|selectattr('pinned')|list %}
     {% set other_notes = notes|rejectattr('pinned')|list %}
     {% if pinned_notes %}
       <section aria-labelledby="pinned-heading">
         <h2 class="section-label" id="pinned-heading">{{ icon("pin-filled", 14) }}<span>Pinned</span></h2>
-        <ul class="notes-grid">{% for note in pinned_notes %}{{ note_card(note) }}{% endfor %}</ul>
+        <ul class="notes-grid">{% for note in pinned_notes %}{{ note_card(note, "active", "index", return_to) }}{% endfor %}</ul>
       </section>
     {% endif %}
     {% if other_notes %}
       <section aria-labelledby="others-heading">
         {% if pinned_notes %}<h2 class="section-label" id="others-heading"><span>Others</span></h2>{% endif %}
-        <ul class="notes-grid">{% for note in other_notes %}{{ note_card(note) }}{% endfor %}</ul>
+        <ul class="notes-grid">{% for note in other_notes %}{{ note_card(note, "active", "index", return_to) }}{% endfor %}</ul>
       </section>
     {% endif %}
   {% else %}
@@ -72,11 +63,15 @@
       {% if query %}
         <h2>No notes match “{{ query }}”</h2>
         <p>Try a different word, or clear the search to see everything.</p>
-        <a class="btn btn-secondary" href="{{ url_for('index', category=active_category['id'] if active_category else None) }}">Clear search</a>
-      {% elif active_category %}
+        <a class="btn btn-secondary" href="{{ filter_url('index', filters, q=None) }}">Clear search</a>
+      {% elif active_category and not filters.tag and not filters.pinned %}
         <h2>No notes in {{ active_category['name'] }} yet</h2>
         <p>Pick this category when you add or edit a note and it will show up here.</p>
         <a class="btn btn-secondary" href="{{ url_for('index') }}">Show all notes</a>
+      {% elif filters.tag or filters.pinned or active_category %}
+        <h2>No notes match these filters</h2>
+        <p>Try removing a filter, or reset them to see every note.</p>
+        <a class="btn btn-secondary" href="{{ url_for('index') }}">Reset all filters</a>
       {% else %}
         <h2>No notes yet</h2>
         <p>Capture your first idea with the form above. Pinned notes will stay at the top.</p>

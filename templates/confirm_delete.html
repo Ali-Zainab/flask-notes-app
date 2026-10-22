@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% from "_icons.html" import icon %}
+{% block title %}Confirm delete{% endblock %}
+{% block content %}
+  <a class="back-link" href="{{ cancel_url }}">{{ icon("arrow-left", 16) }}<span>{{ back_label }}</span></a>
+
+  <section class="card confirm-card" aria-labelledby="confirm-heading">
+    <h1 id="confirm-heading" class="confirm-heading">{{ heading }}</h1>
+    <p class="sub">{{ message }}</p>
+    <form method="post" action="{{ action }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div class="form-actions">
+        <button type="submit" class="btn btn-danger">{{ icon("trash") }}<span>{{ button }}</span></button>
+        <a class="btn btn-ghost" href="{{ cancel_url }}">Cancel</a>
+      </div>
+    </form>
+  </section>
+{% endblock %}

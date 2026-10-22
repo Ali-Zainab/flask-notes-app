@@ -25,5 +25,11 @@ one gets `.is-active` and `aria-current="page"`. The `.is-soon` and `.badge` sty
 Below 900px the bottom nav has five links (Notes, New, Categories, Archive, Trash); the theme toggle stays
 in the top bar. Note cards live in `templates/_note_card.html` (`mode`: active / archived / trashed).
 
+## Search, filters, tags and category management (Agent 5)
+- `templates/_filters.html` is the shared GET form (search, tag, sort, pinned, plus a category select on Archive/Trash), the category chips (All notes only) and the removable active-filter chips with "Reset all filters". Include it with `filters`, `endpoint`, `categories`, `tags`, `sort_options` in context. `filter_url(endpoint, filters, key=value|None)` builds links that keep the other filters.
+- Note cards take `return_to` so pin/archive/trash/edit return to the filtered list. Only `/`, `/archive` and `/trash` are accepted.
+- Tags are `.chip.chip-static` inside `ul.tag-list`; the edit form uses `fieldset.tag-picker` with `.tag-option` checkboxes. Category/tag cards share `.category-card`; Rename uses a native `<details>`.
+- Deleting a category or tag goes through `confirm_delete.html` (a GET page, then a POST), so it needs no JavaScript.
+
 ## Progressive enhancement
 Without JS: forms submit normally, delete has no confirmation dialog, theme follows the OS, theme buttons stay hidden.

@@ -1,7 +1,7 @@
 {# Note card shared by the All notes, Archive and Trash pages.
    mode: "active" | "archived" | "trashed". back: endpoint name POST actions return to. #}
 {% from "_icons.html" import icon %}
-{% macro note_card(note, mode="active", back="index") %}
+{% macro note_card(note, mode="active", back="index", return_to="") %}
   {% set pinned = note['pinned'] %}
   <li class="note-card{% if pinned %} is-pinned{% endif %}">
     <article>
@@ -9,6 +9,7 @@
         {% if pinned %}<span class="pin-mark">{{ icon("pin-filled", 16) }}<span class="sr-only">Pinned: </span></span>{% endif %}{{ note['title'] }}
       </h3>
       {% if note['category_name'] %}<p class="note-meta"><span class="chip chip-static">{{ icon("folder", 14) }}<span class="sr-only">Category: </span>{{ note['category_name'] }}</span></p>{% endif %}
+      {% if note['tags'] %}<ul class="tag-list" aria-label="Tags">{% for t in note['tags'] %}<li><a class="chip chip-static" href="{{ url_for(back, tag=t['id']) }}"><span aria-hidden="true">#</span>{{ t['name'] }}</a></li>{% endfor %}</ul>{% endif %}
       {% if note['content'] %}<p class="note-body">{{ note['content'] }}</p>{% endif %}
       <footer class="note-foot">
         {% if mode == "trashed" %}
@@ -20,32 +21,32 @@
           {% if mode == "trashed" %}
             <form method="post" action="{{ url_for('restore_note', note_id=note['id']) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="next" value="{{ back }}">
+              <input type="hidden" name="next" value="{{ back }}">{% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
               <button type="submit" class="btn btn-ghost btn-sm">{{ icon("restore", 16) }}<span>Restore</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
             </form>
             <form method="post" action="{{ url_for('purge_note', note_id=note['id']) }}" data-confirm data-confirm-title="{{ note['title'] }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="next" value="{{ back }}">
+              <input type="hidden" name="next" value="{{ back }}">{% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
               <button type="submit" class="btn btn-danger-ghost btn-sm">{{ icon("trash", 16) }}<span>Delete permanently</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
             </form>
           {% else %}
             {% if mode == "active" %}
             <form method="post" action="{{ url_for('pin', note_id=note['id']) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="next" value="{{ back }}">
+              <input type="hidden" name="next" value="{{ back }}">{% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
               <button type="submit" class="btn btn-ghost btn-sm">{{ icon("pin-filled" if pinned else "pin", 16) }}<span>{{ 'Unpin' if pinned else 'Pin' }}</span></button>
             </form>
             {% endif %}
-            <a class="btn btn-ghost btn-sm" href="{{ url_for('edit', note_id=note['id']) }}">{{ icon("edit", 16) }}<span>Edit</span><span class="sr-only"> note: {{ note['title'] }}</span></a>
+            <a class="btn btn-ghost btn-sm" href="{{ url_for('edit', note_id=note['id'], return_to=return_to or None) }}">{{ icon("edit", 16) }}<span>Edit</span><span class="sr-only"> note: {{ note['title'] }}</span></a>
             <a class="btn btn-ghost btn-sm" href="{{ url_for('note_media', note_id=note['id']) }}">{{ icon("paperclip", 16) }}<span>Files{% if note['media_count'] %} ({{ note['media_count'] }}){% endif %}</span><span class="sr-only"> attachments for note: {{ note['title'] }}</span></a>
             <form method="post" action="{{ url_for('unarchive_note' if mode == 'archived' else 'archive_note', note_id=note['id']) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="next" value="{{ back }}">
+              <input type="hidden" name="next" value="{{ back }}">{% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
               <button type="submit" class="btn btn-ghost btn-sm">{{ icon("restore" if mode == "archived" else "archive", 16) }}<span>{{ 'Unarchive' if mode == 'archived' else 'Archive' }}</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
             </form>
             <form method="post" action="{{ url_for('delete', note_id=note['id']) }}">
               <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-              <input type="hidden" name="next" value="{{ back }}">
+              <input type="hidden" name="next" value="{{ back }}">{% if return_to %}<input type="hidden" name="return_to" value="{{ return_to }}">{% endif %}
               <button type="submit" class="btn btn-danger-ghost btn-sm">{{ icon("trash", 16) }}<span>Trash</span><span class="sr-only"> note: {{ note['title'] }}</span></button>
             </form>
           {% endif %}
